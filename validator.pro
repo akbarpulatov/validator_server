@@ -19,6 +19,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
+        payme.cpp \
         programm.cpp
 
 # Default rules for deployment.
@@ -27,7 +28,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/binr
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    main.h
+    main.h \
+    payme.h
 
 #OPENSSL_LIBS +='-L/usr/lib/x86_64-linux-gnu -lssl -lcrypto'
 #QMAKE_CXXFLAGS += -openssl-linked

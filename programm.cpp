@@ -16,18 +16,27 @@ myprogram::myprogram(QObject *parent) : QObject(parent)
 //    connect(TurnSock, SIGNAL(disconnected()), this, SLOT(TurnSokDisconnected()));
 //    TurnSock->connectToHost("192.168.233.96", 80);
 
+    payme = new Payme();
+
 
     // tcp server
     tcpserver = new QTcpServer(this);
     tcpserver->listen(QHostAddress::Any, 8080);
     connect(tcpserver, &QTcpServer::newConnection, this, &myprogram::TcpConnectedToClient);
+
 }
 //////////////////////////////////////////////////////////////
 void myprogram::ReadInformation()
 {
     QByteArray temp = tcpsocket->readAll();
-//    qDebug() << "Message:" << temp;
-    SendPayme(temp);
+    // qDebug() << "Message:" << temp;
+    // SendPayme(temp);
+
+    // payme craete function
+    // payme->create();
+
+    SendPayme("123123");
+
 }
 void myprogram::TcpConnectedToClient()
 {
@@ -42,43 +51,36 @@ void myprogram::TcpConnectedToClient()
 /////////////////////////////////////////////////////////////
 void myprogram::SendPayme(QByteArray qrData)
 {
-    qDebug() << qrData;
+    qDebug() << "Payme creating started";
 
     // Body QJson
     QJsonObject json;
+    QJsonObject jsonParams;
 
-    // request_dt polya
-    QDate cDate = QDate::currentDate();
-    QTime cTime = QTime::currentTime();
-
-    QString DTime = QString("%1 %2")
-                        .arg(cDate.toString("yyyy-MM-dd"))
-                        .arg(cTime.toString("hh:mm:ss"));
-
-    // json.insert("request_dt", "2019-02-21 16:10:23");
-    // json.insert("last_tid", 0);
-    // json.insert("limit", 50);
-
-    json.insert("hid", 23);
-    json.insert("billing_code", qrData.data());
-    json.insert("request_dt", DTime);
+    jsonParams.insert("amount", 106 * 100);
+    json.insert("id", "1105e3bab097f420a62ced0b");
+    json.insert("method", "receipts.create");
+    json.insert("params", jsonParams);
 
     QJsonDocument jsondoc(json);
     QByteArray JsonData = jsondoc.toJson();
 
     // QNetwork
     QNetworkAccessManager * manager = new QNetworkAccessManager(this);
-    QUrl url("https://service.khivamuseum.uz/api/turnstile/ticket/new");
-    // QUrl url("https://service.khivamuseum.uz/api/turnstile/ticket/list");
+    QUrl url("https://checkout.paycom.uz/api");
+
     // QUrl url("http://192.168.233.96");
     QNetworkRequest request(url);
 
-    // Headers
-    QString HeaderData = "Basic dF9ocy1rM3hqMWk3Y01XbTU6WmRjOWFMaU9ae1ZqZSQxU2k1MHhuR2Rl";
+    QString HeaderData = "5ef2dd55b18e52dd0c1af92a:&DJ%v5u6qbHSK8MWk580hdP%yfgqrE4zB84w";
 
-    request.setRawHeader("Authorization", HeaderData.toLocal8Bit());
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    // Set Headers
     request.setHeader(QNetworkRequest::ContentLengthHeader, QByteArray::number(JsonData.size()));
+    request.setRawHeader("Host", "checkout.paycom.uz");
+    request.setRawHeader("Accept", "*/*");
+    request.setRawHeader("Connection", "keep-alive");
+    request.setRawHeader("X-Auth", HeaderData.toLocal8Bit());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(replyFinished(QNetworkReply *)));
     manager->post(request, JsonData);
@@ -86,16 +88,19 @@ void myprogram::SendPayme(QByteArray qrData)
 
 void myprogram::replyFinished(QNetworkReply *reply)
 {
-    QByteArray data = reply->readAll();
+    if (!reply->error())
+    {
+        QByteArray Response = reply->readAll();
+        // tcpsocket->write(data);
 
-    QString str(data);
-    qDebug() << str;
+        QJsonDocument JDocResp = QJsonDocument::fromJson(Response);
+        if (!JDocResp.isEmpty())
+        {
 
-    QFile f("site.html");
-    if (f.open(QFile::WriteOnly))
-        f.write(data);
+        }
 
-    tcpsocket->write(data);
+
+    }
 }
 ////////////////////////////////////////////////////////////////
 void myprogram::TimerTick()

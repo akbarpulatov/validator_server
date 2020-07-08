@@ -15,6 +15,9 @@
 #include <QFile>
 #include <QSslSocket>
 #include <QTcpServer>
+#include <QByteArray>
+
+#include "payme.h"
 
 #define CANSEL_URL "https://tickets.nikit.uz/api/turnstile/ticket/list"
 #define PAYME_URL  "https://tickets.nikit.uz/api/turnstile/ticket/new"
@@ -52,9 +55,13 @@ public slots :
     // Timer
     void TimerTick();
 
-private:
+public:
     QTcpServer* tcpserver;
     QTcpSocket* tcpsocket;
+//    QNetworkAccessManager * manager;
+
+public:
+    Payme* payme;
 
 };
 
