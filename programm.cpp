@@ -1,6 +1,5 @@
 #include "main.h"
 
-
 myprogram::myprogram(QObject *parent) : QObject(parent)
 {
     qDebug()<<"Openssl"<< QSslSocket :: supportsSsl () << QSslSocket::sslLibraryBuildVersionString();
@@ -17,13 +16,12 @@ myprogram::myprogram(QObject *parent) : QObject(parent)
 //    TurnSock->connectToHost("192.168.233.96", 80);
 
     payme = new Payme();
-
+    PaymeReceiptsCreate("100");
 
     // tcp server
     tcpserver = new QTcpServer(this);
     tcpserver->listen(QHostAddress::Any, 8080);
     connect(tcpserver, &QTcpServer::newConnection, this, &myprogram::TcpConnectedToClient);
-
 }
 //////////////////////////////////////////////////////////////
 void myprogram::ReadInformation()
@@ -35,7 +33,8 @@ void myprogram::ReadInformation()
     // payme craete function
     // payme->create();
 
-    SendPayme("123123");
+    //receipt pay
+    PaymeReceiptsPay(temp);
 
 }
 void myprogram::TcpConnectedToClient()
@@ -49,7 +48,7 @@ void myprogram::TcpConnectedToClient()
     connect(tcpsocket, &QTcpSocket::readyRead, this, &myprogram::ReadInformation);
 }
 /////////////////////////////////////////////////////////////
-void myprogram::SendPayme(QByteArray qrData)
+void myprogram::PaymeReceiptsCreate(const QString amount)
 {
     qDebug() << "Payme creating started";
 
@@ -57,8 +56,8 @@ void myprogram::SendPayme(QByteArray qrData)
     QJsonObject json;
     QJsonObject jsonParams;
 
-    jsonParams.insert("amount", 106 * 100);
-    json.insert("id", "1105e3bab097f420a62ced0b");
+    jsonParams.insert("amount", amount.toInt() * 100);
+    json.insert("id", id);
     json.insert("method", "receipts.create");
     json.insert("params", jsonParams);
 
@@ -82,26 +81,66 @@ void myprogram::SendPayme(QByteArray qrData)
     request.setRawHeader("X-Auth", HeaderData.toLocal8Bit());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(replyFinished(QNetworkReply *)));
+    connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(PaymeReceiptsCreateRespond(QNetworkReply *)));
     manager->post(request, JsonData);
 }
 
-void myprogram::replyFinished(QNetworkReply *reply)
+void myprogram::PaymeReceiptsCreateRespond(QNetworkReply *reply)
 {
     if (!reply->error())
     {
-        QByteArray Response = reply->readAll();
-        // tcpsocket->write(data);
-
-        QJsonDocument JDocResp = QJsonDocument::fromJson(Response);
-        if (!JDocResp.isEmpty())
-        {
-
-        }
-
-
+        QJsonDocument JDocResp = QJsonDocument::fromJson(reply->readAll());
+        QJsonObject JObjResp = JDocResp.object();
+        QJsonObject resultJson = JObjResp["result"].toObject();
+        QJsonObject receiptJson = resultJson["receipt"].toObject();
+        idRecipient = receiptJson["_id"].toString();
+        qDebug() << "Payment is successfully created!";
     }
 }
+////////////////////////////////////////////////////////////////
+void myprogram::PaymeReceiptsPay(const QByteArray token)
+{
+    qDebug() << "Payme Pay";
+
+    // Body QJson
+    QJsonObject json;
+    QJsonObject jsonParams;
+
+    jsonParams.insert("id", idRecipient);
+    jsonParams.insert("token", token.data());
+
+    json.insert("id", id);
+    json.insert("method", "receipts.pay");
+    json.insert("params", jsonParams);
+
+    QJsonDocument jsondoc(json);
+    QByteArray JsonData = jsondoc.toJson();
+
+    // QNetwork
+    QNetworkAccessManager * manager = new QNetworkAccessManager(this);
+    QUrl url("https://checkout.paycom.uz/api");
+
+    QNetworkRequest request(url);
+    QString HeaderData = "5ef2dd55b18e52dd0c1af92a:&DJ%v5u6qbHSK8MWk580hdP%yfgqrE4zB84w";
+
+    // Set Headers
+    request.setHeader(QNetworkRequest::ContentLengthHeader, QByteArray::number(JsonData.size()));
+    request.setRawHeader("Host", "checkout.paycom.uz");
+    request.setRawHeader("Accept", "*/*");
+    request.setRawHeader("Connection", "keep-alive");
+    request.setRawHeader("X-Auth", HeaderData.toLocal8Bit());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(PaymeReceiptsPayRespond(QNetworkReply *)));
+    manager->post(request, JsonData);
+}
+
+void myprogram::PaymeReceiptsPayRespond(QNetworkReply *reply)
+{
+    QByteArray data = reply->readAll();
+    qDebug() << "Payme Pay responded" << endl << data << endl;
+}
+
 ////////////////////////////////////////////////////////////////
 void myprogram::TimerTick()
 {

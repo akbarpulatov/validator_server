@@ -36,7 +36,8 @@ public:
     QTimer *TickTimer;
 
 public:
-    void SendPayme(QByteArray qrData);
+    void PaymeReceiptsCreate(const QString);
+    void PaymeReceiptsPay(const QByteArray);
 
 
 public slots :
@@ -50,8 +51,8 @@ public slots :
     void ReadInformation();
 
     // HTTP
-    void replyFinished(QNetworkReply *reply);
-
+    void PaymeReceiptsCreateRespond(QNetworkReply *reply);
+    void PaymeReceiptsPayRespond(QNetworkReply *);
     // Timer
     void TimerTick();
 
@@ -62,6 +63,12 @@ public:
 
 public:
     Payme* payme;
+
+private:
+private:
+    const QString id = "1105e3bab097f420a62ced0b";
+//    QString token;
+    QString idRecipient;
 
 };
 
