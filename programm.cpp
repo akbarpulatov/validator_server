@@ -35,6 +35,7 @@ void myprogram::ReadInformation()
 
     //receipt pay
     PaymeReceiptsPay(temp);
+    tcpsocket->write("1");
 
 }
 void myprogram::TcpConnectedToClient()
@@ -139,6 +140,9 @@ void myprogram::PaymeReceiptsPayRespond(QNetworkReply *reply)
 {
     QByteArray data = reply->readAll();
     qDebug() << "Payme Pay responded" << endl << data << endl;
+
+    // Payme create receipt
+    PaymeReceiptsCreate("100");
 }
 
 ////////////////////////////////////////////////////////////////
